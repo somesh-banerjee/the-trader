@@ -1,0 +1,123 @@
+version: '3.8'
+
+services:
+  # Message Queue
+  nats:
+    image: nats:2.9.17
+    container_name: nats
+    ports:
+      - "4222:4222"
+    networks:
+      - trading_net
+    restart: unless-stopped
+
+  # PostgreSQL for structured trade storage
+  postgres:
+    image: postgres:15.3
+    container_name: postgres
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: trading_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - trading_net
+    restart: unless-stopped
+
+  # InfluxDB for time-series market data (1-year retention policy)
+  influxdb:
+    image: influxdb:2.7.1
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb_data:/var/lib/influxdb
+    networks:
+      - trading_net
+    restart: unless-stopped
+
+  # Service 1A: Live Data Consumer (WebSocket/API-based)
+  service1a_live_data:
+    build: ./services/live_data_consumer
+    deploy:
+      replicas: 3  # Multiple replicas handling non-overlapping assets
+    environment:
+      DATA_SOURCE: "websocket"  # Use API as fallback if WS fails
+      API_KEY: "your_api_key_here"
+      RATE_LIMIT: "10"  # API Rate limit per second
+    volumes:
+      - live_data_cache:/app/cache
+    networks:
+      - trading_net
+    depends_on:
+      - nats
+      - influxdb
+    restart: unless-stopped
+
+  # Service 1B: Historical Data Provider
+  service1b_historical_data:
+    build: ./services/historical_data_provider
+    container_name: historical_data_provider
+    environment:
+      DATA_RETENTION_YEARS: "1"
+    volumes:
+      - historical_data:/app/archive
+    networks:
+      - trading_net
+    depends_on:
+      - postgres
+      - influxdb
+    restart: unless-stopped
+
+  # Service 2: Decision Making
+  service2_decision:
+    build: ./services/decision_maker
+    container_name: decision_maker
+    volumes:
+      - decision_cache:/app/cache
+    networks:
+      - trading_net
+    depends_on:
+      - nats
+      - service1b_historical_data
+    restart: unless-stopped
+
+  # Service 3: Order Placement (Single Instance)
+  service3_order:
+    build: ./services/order_placement
+    container_name: order_placement
+    volumes:
+      - order_logs:/app/logs
+    networks:
+      - trading_net
+    depends_on:
+      - postgres
+      - nats
+    restart: unless-stopped
+
+  # Service 4: UI (Next.js, Single Instance)
+  service4_ui:
+    build: ./services/ui
+    container_name: ui
+    ports:
+      - "3000:3000"
+    networks:
+      - trading_net
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+networks:
+  trading_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  influxdb_data:
+  live_data_cache:
+  historical_data:
+  decision_cache:
+  order_logs:
