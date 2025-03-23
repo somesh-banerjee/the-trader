@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # Message Queue
+  nats:
+    image: nats:2.11
+    container_name: nats
+    ports:
+      - "4222:4222"
+    networks:
+      - trading_net
+    restart: unless-stopped
+
+  # PostgreSQL for structured trade storage
+  postgres:
+    image: postgres:17
+    container_name: postgres
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: trading_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - trading_net
+    restart: unless-stopped
+
+  # InfluxDB for time-series market data (1-year retention policy)
+  influxdb:
+    image: influxdb:2
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb_data:/var/lib/influxdb
+    networks:
+      - trading_net
+    restart: unless-stopped
+
+networks:
+  trading_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  influxdb_data:

@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # # Service 1A: Live Data Consumer (WebSocket/API-based)
+  # service1a_live_data:
+  #   build: ./services/live_data_consumer
+  #   deploy:
+  #     replicas: 3  # Multiple replicas handling non-overlapping assets
+  #   environment:
+  #     API_KEY: "your_api_key_here"
+  #   volumes:
+  #     - live_data_cache:/app/cache
+  #   networks:
+  #     - trading_net
+  #   restart: unless-stopped
+
+  # # Service 1B: Historical Data Provider
+  # service1b_historical_data:
+  #   build: ./services/historical_data_provider
+  #   container_name: historical_data_provider
+  #   environment:
+  #     DATA_RETENTION_YEARS: "1"
+  #   volumes:
+  #     - historical_data:/app/archive
+  #   networks:
+  #     - trading_net
+  #   restart: unless-stopped
+
+  # # Service 2: Decision Making
+  # service2_decision:
+  #   build: ./services/decision_maker
+  #   container_name: decision_maker
+  #   volumes:
+  #     - decision_cache:/app/cache
+  #   networks:
+  #     - trading_net
+  #   restart: unless-stopped
+
+  # Service 3: Order Placement (Single Instance)
+  service3_order:
+    build: ./services/order_placement
+    container_name: order_placement
+    volumes:
+      - order_logs:/app/logs
+    networks:
+      - trading_net
+    restart: unless-stopped
+
+  # Service 4: UI (Next.js, Single Instance)
+  service4_ui:
+    build: ./services/ui
+    container_name: ui
+    ports:
+      - "3000:3000"
+    networks:
+      - trading_net
+    restart: unless-stopped
+
+networks:
+  trading_net:
+    driver: bridge
+
+volumes:
+  live_data_cache:
+  historical_data:
+  decision_cache:
+  order_logs:
