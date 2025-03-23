@@ -1,20 +1,23 @@
-# Use a lightweight Rust base image
-FROM rust:1.74 as builder
+# Use a lightweight Node.js base image
+FROM node:22
 
 # Set working directory
 WORKDIR /app
 
-# Copy Cargo files first to cache dependencies
-COPY Cargo.toml Cargo.lock ./
-RUN cargo fetch
+# Copy package.json and package-lock.json first for better caching
+COPY package.json package-lock.json ./
 
-# Copy source code and build
-COPY src ./src
-RUN cargo build --release
+# Install dependencies
+RUN npm install
 
-# Use a smaller runtime image
-FROM debian:bullseye-slim
-WORKDIR /app
-COPY --from=builder /app/target/release/live_data_consumer .
+# Copy the rest of the application
+COPY . .
 
-CMD ["./live_data_consumer"]
+# Build the application
+RUN npm run build
+
+# Expose the application port
+EXPOSE 3000
+
+# Start the NestJS application
+CMD ["npm", "run", "start:prod"]

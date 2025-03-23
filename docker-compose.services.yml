@@ -1,18 +1,18 @@
 version: '3.8'
 
 services:
-  # # Service 1A: Live Data Consumer (WebSocket/API-based)
-  # service1a_live_data:
-  #   build: ./services/live_data_consumer
-  #   deploy:
-  #     replicas: 3  # Multiple replicas handling non-overlapping assets
-  #   environment:
-  #     API_KEY: "your_api_key_here"
-  #   volumes:
-  #     - live_data_cache:/app/cache
-  #   networks:
-  #     - trading_net
-  #   restart: unless-stopped
+  # Service 1A: Live Data Consumer (WebSocket/API-based)
+  service1a_live_data:
+    build: ./services/live_data_consumer
+    deploy:
+      replicas: 3  # Multiple replicas handling non-overlapping assets
+    environment:
+      API_KEY: "your_api_key_here"
+    volumes:
+      - live_data_cache:/app/cache
+    networks:
+      - trading_net
+    restart: unless-stopped
 
   # # Service 1B: Historical Data Provider
   # service1b_historical_data:
@@ -26,15 +26,15 @@ services:
   #     - trading_net
   #   restart: unless-stopped
 
-  # # Service 2: Decision Making
-  # service2_decision:
-  #   build: ./services/decision_maker
-  #   container_name: decision_maker
-  #   volumes:
-  #     - decision_cache:/app/cache
-  #   networks:
-  #     - trading_net
-  #   restart: unless-stopped
+  # Service 2: Decision Making
+  service2_decision:
+    build: ./services/decision_maker
+    container_name: decision_maker
+    volumes:
+      - decision_cache:/app/cache
+    networks:
+      - trading_net
+    restart: unless-stopped
 
   # Service 3: Order Placement (Single Instance)
   service3_order:
