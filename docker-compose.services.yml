@@ -4,8 +4,10 @@ services:
   # Service 1A: Live Data Consumer (WebSocket/API-based)
   service1a_live_data:
     build: ./services/live_data_consumer
-    deploy:
-      replicas: 3  # Multiple replicas handling non-overlapping assets
+    ports:
+      - "3003:3000"
+    # deploy:
+    #   replicas: 3  # Multiple replicas handling non-overlapping assets
     environment:
       API_KEY: "your_api_key_here"
     volumes:
@@ -14,22 +16,27 @@ services:
       - trading_net
     restart: unless-stopped
 
-  # # Service 1B: Historical Data Provider
-  # service1b_historical_data:
-  #   build: ./services/historical_data_provider
-  #   container_name: historical_data_provider
-  #   environment:
-  #     DATA_RETENTION_YEARS: "1"
-  #   volumes:
-  #     - historical_data:/app/archive
-  #   networks:
-  #     - trading_net
-  #   restart: unless-stopped
+  # Service 1B: Historical Data Provider
+  service1b_historical_data:
+    build: ./services/historical_data_provider
+    container_name: historical_data_provider
+    ports:
+      - "3002:3000"
+    environment:
+      DATA_RETENTION_YEARS: "1"
+    volumes:
+      - historical_data:/app/archive
+    networks:
+      - trading_net
+    restart: unless-stopped
 
   # Service 2: Decision Making
   service2_decision:
     build: ./services/decision_maker
     container_name: decision_maker
+    environment:
+      - NATS_URL=nats://nats:4222
+      - HISTORICAL_SERVICE_URL=http://historical_data_provider:8000
     volumes:
       - decision_cache:/app/cache
     networks:
@@ -40,6 +47,8 @@ services:
   service3_order:
     build: ./services/order_placement
     container_name: order_placement
+    ports:
+      - "3001:3000"
     volumes:
       - order_logs:/app/logs
     networks:

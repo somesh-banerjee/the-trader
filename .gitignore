@@ -1,4 +1,9 @@
+# nodejs
 node_modules
 dist
+
+# python
+__pycache__
+*.pyc
 
 .env
