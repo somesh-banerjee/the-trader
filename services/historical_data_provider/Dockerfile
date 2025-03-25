@@ -1,14 +1,11 @@
-FROM rust:1.74 as builder
+FROM python:3.10
+
 WORKDIR /app
+COPY . /app
 
-COPY Cargo.toml Cargo.lock ./
-RUN cargo fetch
+# Set PYTHONPATH
+ENV PYTHONPATH="/app/src"
 
-COPY src ./src
-RUN cargo build --release
+RUN pip install --no-cache-dir -r requirements.txt
 
-FROM debian:bullseye-slim
-WORKDIR /app
-COPY --from=builder /app/target/release/historical_data_provider .
-
-CMD ["./historical_data_provider"]
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
