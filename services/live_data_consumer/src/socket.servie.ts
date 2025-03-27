@@ -1,41 +1,14 @@
-import {
-  WebSocketGateway,
-  OnGatewayInit,
-  OnGatewayConnection,
-  OnGatewayDisconnect,
-} from '@nestjs/websockets';
 import { Injectable, Logger } from '@nestjs/common';
 import * as WebSocket from 'ws';
 import axios from 'axios';
+import * as protobuf from 'protobufjs';
 
-@WebSocketGateway()
 @Injectable()
-export class SocketGateway
-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+export class SocketService
 {
-  private logger: Logger = new Logger('SocketGateway');
-  private socketSocket: WebSocket;
+  private logger: Logger = new Logger(SocketService.name);
   private readonly accessToken: string = process.env.ACCESS_TOKEN;
-  private wsUrl: string;
-
-
-  async afterInit() {
-    this.logger.log('WebSocket Gateway Initialized');
-    try {
-      // this.wsUrl = await this.getMarketFeedUrl();
-    } catch (error) {
-      this.logger.error(`Error fetching market feed URL: ${error.message}`);
-    }
-  }
-
-  async handleConnection() {
-    this.logger.log('Client Connected');
-    try {
-      this.socketSocket = await this.connectWebSocket(this.wsUrl);
-    } catch (error) {
-      this.logger.error(`WebSocket Connection Error: ${error.message}`);
-    }
-  }
+  private protobufRoot: any = null;
 
   private async getMarketFeedUrl (): Promise<string> {
     const url = "https://api.upstox.com/v3/feed/market-data-feed/authorize";
@@ -47,7 +20,7 @@ export class SocketGateway
     return response.data.data.authorizedRedirectUri;
   };
 
-  async connectWebSocket(wsUrl: string): Promise<WebSocket> {
+  private async connectWebSocket(wsUrl: string): Promise<WebSocket> {
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(wsUrl, {
         followRedirects: true,
@@ -92,15 +65,42 @@ export class SocketGateway
     });
   }
 
-  decodeProtobuf(message: WebSocket.Data): any {
-    // Implement Protobuf decoding logic here
-    return message.toString(); // Placeholder: Convert Buffer to string
+  private initProtobuf = async () => {
+    this.protobufRoot = await protobuf.load(__dirname + "/MarketDataFeedV3.proto");
+    console.log("Protobuf part initialization complete");
+  };
+
+  private decodeProtobuf(buffer: any): any {
+    if (!this.protobufRoot) {
+      console.warn('Protobuf part not initialized yet!');
+      return null;
+    }
+
+    const FeedResponse = this.protobufRoot.lookupType(
+      'com.upstox.marketdatafeederv3udapi.rpc.proto.FeedResponse',
+    );
+    return FeedResponse.decode(buffer);
   }
 
-  handleDisconnect() {
-    this.logger.warn('Client Disconnected');
-    if (this.socketSocket) {
-      this.socketSocket.close();
+//   (async () => {
+//   try {
+//     await initProtobuf(); // Initialize protobuf
+//     const wsUrl = await getMarketFeedUrl(); // Get the market feed URL
+//     const ws = await connectWebSocket(wsUrl); // Connect to the WebSocket
+//   } catch (error) {
+//     console.error("An error occurred:", error);
+//   }
+//   console.log(accessToken);
+// })();
+
+  async start(): Promise<void> {
+    try {
+      await this.initProtobuf(); // Initialize protobuf
+      const wsUrl = await this.getMarketFeedUrl(); // Get the market feed URL
+      const ws = await this.connectWebSocket(wsUrl); // Connect to the WebSocket
+    } catch (error) {
+      console.error("An error occurred:", error);
     }
   }
+
 }

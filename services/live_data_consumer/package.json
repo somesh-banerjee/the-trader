@@ -21,11 +21,12 @@
   },
   "dependencies": {
     "@nestjs/common": "^11.0.12",
+    "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.12",
     "@nestjs/platform-express": "^11.0.12",
-    "@nestjs/platform-socket.io": "^11.0.12",
-    "@nestjs/websockets": "^11.0.12",
     "axios": "^1.8.4",
+    "dotenv": "^16.4.7",
+    "protobufjs": "^7.4.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "ws": "^8.18.1"
