@@ -109,3 +109,15 @@ export class FeedResponse {
   currentTs: number; // Current timestamp
   marketInfo: MarketInfo; // Market info
 }
+
+export enum Methods {
+  SUBSCRIBE = 'sub',
+  UNSUBSCRIBE = 'unsub',
+  CHANGE_MODE = 'change_mode',
+}
+
+export enum Modes {
+  LTPC = 'ltpc',
+  FULL = 'full',
+  OPTION_GREEKS = 'option_chain',
+}

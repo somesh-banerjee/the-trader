@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Methods, Modes } from 'src/upstox/all.interface';
 import { UpstoxService } from 'src/upstox/uptox.service';
 import { v4 as uuidv4 } from 'uuid';
 import * as WebSocket from 'ws';
@@ -25,9 +26,9 @@ export class SocketService {
         setTimeout(() => {
           const data = {
             guid: uuidv4(),
-            method: 'sub',
+            method: Methods.SUBSCRIBE,
             data: {
-              mode: 'full',
+              mode: Modes.FULL,
               instrumentKeys: ['NSE_INDEX|Nifty Bank', 'NSE_INDEX|Nifty 50'],
             },
           };

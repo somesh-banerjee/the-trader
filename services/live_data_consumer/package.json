@@ -25,6 +25,7 @@
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.12",
     "@nestjs/platform-express": "^11.0.12",
+    "@prisma/client": "^6.5.0",
     "axios": "^1.8.4",
     "dotenv": "^16.4.7",
     "protobufjs": "^7.4.0",

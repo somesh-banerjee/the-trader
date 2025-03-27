@@ -6,10 +6,40 @@
 
 generator client {
   provider = "prisma-client-js"
-  output = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+enum Exchange {
+  NSE   // National Stock Exchange
+  BSE   // Bombay Stock Exchange
+  MCX   // Multi Commodity Exchange
+  NCD   // NSE Currency Derivatives
+  BCD   // BSE Currency Derivatives
+}
+
+enum Segment {
+  EQ      // Equity (Stocks)
+  FO      // Futures & Options
+  INDEX   // Index
+  COM     // Commodities
+}
+
+model instrument {
+  id             Int       @id @default(autoincrement()) // Auto-incrementing Primary Key
+  exchange       Exchange  // Enum: NSE, BSE, MCX, etc.
+  segment        Segment   // Enum: EQ, FO, INDEX, COM, etc.
+  symbol         String    // Stock/Future/Option name
+  trade_enabled   Boolean   @default(false) // Whether this instrument is selected for trading
+  upstox_key      String?   // Upstox instrument key mapping
+  zerodha_key     String?   // Zerodha instrument key mapping
+  angelone_key    String?   // AngelOne instrument key mapping
+  created_at      DateTime  @default(now()) // Timestamp when added
+  updated_at      DateTime  @updatedAt // Auto-update timestamp
+
+  @@unique([exchange, segment, symbol]) // Composite Unique Constraint
+}
+
