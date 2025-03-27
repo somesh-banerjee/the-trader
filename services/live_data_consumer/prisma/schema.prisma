@@ -29,7 +29,7 @@ enum Segment {
 }
 
 model instrument {
-  id             Int       @id @default(autoincrement()) // Auto-incrementing Primary Key
+  id             String       @id @default(uuid()) // Auto-incrementing Primary Key
   exchange       Exchange  // Enum: NSE, BSE, MCX, etc.
   segment        Segment   // Enum: EQ, FO, INDEX, COM, etc.
   symbol         String    // Stock/Future/Option name
