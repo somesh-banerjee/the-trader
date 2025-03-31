@@ -7,6 +7,7 @@ import * as WebSocket from 'ws';
 @Injectable()
 export class SocketService {
   private logger: Logger = new Logger(SocketService.name);
+  private ws: WebSocket | null = null; 
 
   constructor(
     private readonly tradingProviderService: UpstoxService,
@@ -63,7 +64,7 @@ export class SocketService {
   async start(): Promise<void> {
     try {
       const wsUrl = await this.tradingProviderService.getWssUrl(); // Get the market feed URL
-      const ws = await this.connectWebSocket(wsUrl); // Connect to the WebSocket
+      this.ws = await this.connectWebSocket(wsUrl); // Connect to the WebSocket
     } catch (error) {
       console.error('An error occurred:', error);
     }
