@@ -1,3 +1,4 @@
+import { Module } from '@nestjs/common';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InfluxDB, Point } from '@influxdata/influxdb-client';
 
@@ -42,3 +43,9 @@ export class InfluxService implements OnModuleInit {
     }
   }
 }
+
+@Module({
+  providers: [InfluxService],
+  exports: [InfluxService],
+})
+export class InfluxModule {}
