@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { MarketDataService } from 'src/market_data/market_data.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Methods, Modes } from 'src/upstox/all.interface';
 import { UpstoxService } from 'src/upstox/uptox.service';
@@ -16,6 +17,7 @@ export class SocketService implements OnModuleInit {
 
   constructor(
     private readonly tradingProviderService: UpstoxService,
+    private readonly marketDataService: MarketDataService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -62,10 +64,8 @@ export class SocketService implements OnModuleInit {
       ws.on('message', (message: WebSocket.Data) => {
         try {
           const decodedData =
-            this.tradingProviderService.decodeMessage(message);
-          this.logger.verbose(
-            `Received message with timestamp ${new Date(Number(decodedData.currentTs)).toISOString()}, message: ${JSON.stringify(decodedData)}`,
-          );
+            this.tradingProviderService.decodeMessage(message); 
+          this.marketDataService.processMarketData(decodedData);
         } catch (error) {
           this.logger.error(`Error decoding message: ${error.message}`);
         }
