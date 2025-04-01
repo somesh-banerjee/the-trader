@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Exchange, Segment } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { CreateInstrumentDto, UpdateInstrumentDto } from './instruments.dto';
 
 @Injectable()
 export class InstrumentsService {
@@ -19,15 +20,7 @@ export class InstrumentsService {
     });
   }
 
-  async addInstrument(data: {
-    exchange: Exchange;
-    symbol: string;
-    segment: Segment;
-    trade_enabled: boolean;
-    upstox_key: string;
-    zerodha_key?: string;
-    angelone_key?: string;
-  }) {
+  async addInstrument(data: CreateInstrumentDto) {
     return await this.prismaService.instrument.upsert({
       where: {
         exchange_segment_symbol: {
@@ -40,28 +33,21 @@ export class InstrumentsService {
         exchange: data.exchange,
         symbol: data.symbol,
         segment: data.segment,
+        name: data.name,
+        isin: data.isin,
+        short_name: data.short_name,
         trade_enabled: data.trade_enabled,
         upstox_key: data.upstox_key,
         zerodha_key: data.zerodha_key,
         angelone_key: data.angelone_key,
       },
-      update: {
-        upstox_key: data.upstox_key,
-      },
+      update: {},
     });
   }
 
   async updateInstrument(
     id: string,
-    data: {
-      exchange?: Exchange;
-      symbol?: string;
-      segment?: Segment;
-      trade_enabled?: boolean;
-      upstox_key?: string;
-      zerodha_key?: string;
-      angelone_key?: string;
-    },
+    data: UpdateInstrumentDto,
   ) {
     return await this.prismaService.instrument.update({
       where: { id },

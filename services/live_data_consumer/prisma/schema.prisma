@@ -33,6 +33,9 @@ model instrument {
   exchange       Exchange  // Enum: NSE, BSE, MCX, etc.
   segment        Segment   // Enum: EQ, FO, INDEX, COM, etc.
   symbol         String    // Stock/Future/Option name
+  name            String
+  isin            String
+  short_name      String?
   trade_enabled   Boolean   @default(false) // Whether this instrument is selected for trading
   upstox_key      String?   // Upstox instrument key mapping
   zerodha_key     String?   // Zerodha instrument key mapping
