@@ -9,13 +9,17 @@ export class UpstoxService implements OnModuleInit, TradingApiProviderService {
   private logger = new Logger(UpstoxService.name);
   private readonly accessToken: string = process.env.ACCESS_TOKEN;
   private protobufRoot: any = null;
+  private version: string = 'v3';
 
   async onModuleInit() {
     await this.initProtobuf();
   }
 
   private async getMarketFeedUrl(): Promise<string> {
-    const url = 'https://api.upstox.com/v3/feed/market-data-feed/authorize';
+    const url =
+      'https://api.upstox.com/' +
+      this.version +
+      '/feed/market-data-feed/authorize';
     const headers = {
       Accept: 'application/json',
       Authorization: `Bearer ${this.accessToken}`,

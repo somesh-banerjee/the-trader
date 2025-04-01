@@ -17,7 +17,7 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT ?? 3000);
 
-  const socketServiceInstance = app.get(SocketService);
-  await socketServiceInstance.start();
+  // const socketServiceInstance = app.get(SocketService);
+  // await socketServiceInstance.start();
 }
 bootstrap();

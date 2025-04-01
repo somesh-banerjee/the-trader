@@ -1,17 +1,45 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { Methods, Modes } from 'src/upstox/all.interface';
 import { UpstoxService } from 'src/upstox/uptox.service';
 import { v4 as uuidv4 } from 'uuid';
 import * as WebSocket from 'ws';
 
 @Injectable()
-export class SocketService {
+export class SocketService implements OnModuleInit {
   private logger: Logger = new Logger(SocketService.name);
-  private ws: WebSocket | null = null; 
+  private ws: WebSocket | null = null;
+  private instrumentKeysToSubscribe: string[] = [
+    'NSE_INDEX|Nifty Bank',
+    'NSE_INDEX|Nifty 50',
+  ];
 
   constructor(
     private readonly tradingProviderService: UpstoxService,
+    private readonly prisma: PrismaService,
   ) {}
+
+  async onModuleInit() {
+    this.instrumentKeysToSubscribe = await this.prisma.instrument
+      .findMany({
+        where: {
+          trade_enabled: true,
+        },
+        select: {
+          upstox_key: true,
+        },
+      })
+      .then((instruments) => {
+        return instruments.map((instrument) => instrument.upstox_key);
+      });
+    this.logger.log(
+      `Instrument keys to subscribe: ${this.instrumentKeysToSubscribe.join(
+        ', ',
+      )}`,
+    );
+    this.logger.log('Initializing WebSocket connection...');
+    this.start();
+  }
 
   private async connectWebSocket(wsUrl: string): Promise<WebSocket> {
     return new Promise((resolve, reject) => {
@@ -23,19 +51,8 @@ export class SocketService {
         this.logger.log('Connected to WebSocket');
         resolve(ws);
 
-        // Set a timeout to send a subscription message after 1 second
-        setTimeout(() => {
-          const data = {
-            guid: uuidv4(),
-            method: Methods.SUBSCRIBE,
-            data: {
-              mode: Modes.FULL,
-              instrumentKeys: ['NSE_INDEX|Nifty Bank', 'NSE_INDEX|Nifty 50'],
-            },
-          };
-          ws.send(JSON.stringify(data));
-          this.logger.log('Subscription message sent');
-        }, 1000);
+        // Default subscription
+        this.subscribe(this.instrumentKeysToSubscribe, Modes.FULL);
       });
 
       ws.on('close', () => {
@@ -47,7 +64,7 @@ export class SocketService {
           const decodedData =
             this.tradingProviderService.decodeMessage(message);
           this.logger.verbose(
-            `Received message: ${JSON.stringify(decodedData)}`,
+            `Received message with timestamp ${new Date(Number(decodedData.currentTs)).toISOString()}, message: ${JSON.stringify(decodedData)}`,
           );
         } catch (error) {
           this.logger.error(`Error decoding message: ${error.message}`);
@@ -58,15 +75,101 @@ export class SocketService {
         this.logger.error(`WebSocket Error: ${error.message}`);
         reject(error);
       });
+
+      this.ws = ws;
     });
   }
 
   async start(): Promise<void> {
     try {
-      const wsUrl = await this.tradingProviderService.getWssUrl(); // Get the market feed URL
-      this.ws = await this.connectWebSocket(wsUrl); // Connect to the WebSocket
+      const wsUrl = await this.tradingProviderService.getWssUrl();
+      this.ws = await this.connectWebSocket(wsUrl);
     } catch (error) {
-      console.error('An error occurred:', error);
+      this.logger.error(
+        'An error occurred while starting WebSocket: ' + error.message,
+      );
     }
+  }
+
+  /**
+   * Manually subscribe to instrument keys
+   */
+  subscribe(instrumentKeys: string[], mode: Modes): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      this.logger.warn('WebSocket is not connected. Cannot subscribe.');
+      return;
+    }
+
+    const data = {
+      guid: uuidv4(),
+      method: Methods.SUBSCRIBE,
+      data: { mode, instrumentKeys },
+    };
+
+    this.ws.send(Buffer.from(JSON.stringify(data)));
+    this.logger.log(`Subscribed to: ${instrumentKeys.join(', ')}`);
+  }
+
+  /**
+   * Manually unsubscribe from instrument keys
+   */
+  unsubscribe(instrumentKeys: string[]): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      this.logger.warn('WebSocket is not connected. Cannot unsubscribe.');
+      return;
+    }
+
+    const data = {
+      guid: uuidv4(),
+      method: Methods.UNSUBSCRIBE,
+      data: { instrumentKeys },
+    };
+
+    this.ws.send(JSON.stringify(data));
+    this.logger.log(`Unsubscribed from: ${instrumentKeys.join(', ')}`);
+  }
+
+  /**
+   * Manually disconnect the WebSocket
+   */
+  disconnect(): void {
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
+      this.logger.log('WebSocket connection closed manually.');
+    } else {
+      this.logger.warn('No active WebSocket connection to close.');
+    }
+  }
+
+  /**
+   * Manually reconnect the WebSocket
+   */
+  async reconnect(): Promise<void> {
+    this.logger.log('Reconnecting WebSocket...');
+    this.disconnect();
+    await this.start();
+  }
+
+  /**
+   * Set the instrument keys to subscribe to
+   */
+  setInstrumentKeysToSubscribe(instrumentKeys: string[]): void {
+    this.instrumentKeysToSubscribe = instrumentKeys;
+    this.logger.log(
+      `Instrument keys set to subscribe: ${instrumentKeys.join(', ')}`,
+    );
+  }
+
+  /**
+   * Get the current WebSocket connection status
+   */
+  getConnectionStatus(): string {
+    if (this.ws) {
+      return this.ws.readyState === WebSocket.OPEN
+        ? 'Connected'
+        : 'Disconnected';
+    }
+    return 'No WebSocket connection';
   }
 }
