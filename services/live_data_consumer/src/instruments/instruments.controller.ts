@@ -1,26 +1,39 @@
-import { Controller, Get, Post } from "@nestjs/common";
-import { InstrumentsService } from "./instruments.service";
-import { Exchange, Segment } from "@prisma/client";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+} from '@nestjs/common';
+import { InstrumentsService } from './instruments.service';
+import { CreateInstrumentDto, UpdateInstrumentDto } from './instruments.dto';
 
 @Controller('instruments')
 export class InstrumentsController {
-    constructor(
-        private readonly instrumentsService: InstrumentsService
-    ) {}
+  constructor(private readonly instrumentsService: InstrumentsService) {}
 
-    @Get()
-    async getInstruments() {
-        return await this.instrumentsService.getInstruments();
-    }
+  @Get()
+  async getInstruments() {
+    return await this.instrumentsService.getInstruments();
+  }
 
-    @Post()
-    async addInstrument(data: {
-        exchange: Exchange;
-        symbol: string;
-        segment: Segment;
-        trade_enabled: boolean;
-        upstox_key: string;
-    }) {
-        return await this.instrumentsService.addInstrument(data);
-    }
+  @Post()
+  async addInstrument(@Body() data: CreateInstrumentDto) {
+    return await this.instrumentsService.addInstrument(data);
+  }
+
+  @Patch(':id')
+  async updateInstrument(
+    @Param('id') id: string,
+    @Body() data: UpdateInstrumentDto,
+  ) {
+    return await this.instrumentsService.updateInstrument(id, data);
+  }
+
+  @Delete(':id')
+  async deleteInstrument(@Param('id') id: string) {
+    return await this.instrumentsService.deleteInstrument(id);
+  }
 }

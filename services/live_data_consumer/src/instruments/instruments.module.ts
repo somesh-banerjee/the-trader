@@ -1,8 +1,11 @@
 import { Module } from "@nestjs/common";
+import { InstrumentsController } from "./instruments.controller";
+import { InstrumentsService } from "./instruments.service";
+import { PrismaModule } from "src/prisma/prisma.module";
 
 @Module({
-    imports: [],
-    controllers: [],
-    providers: []
+    imports: [PrismaModule],
+    controllers: [InstrumentsController],
+    providers: [InstrumentsService]
 })
-export class InstrumentsModule {}
+export class InstrumentsModule{}
