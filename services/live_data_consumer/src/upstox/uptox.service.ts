@@ -3,16 +3,22 @@ import axios from 'axios';
 import * as protobuf from 'protobufjs';
 import { TradingApiProviderService } from 'src/abstract/trading_api_provider.interface';
 import { FeedResponse } from './all.interface';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class UpstoxService implements OnModuleInit, TradingApiProviderService {
   private logger = new Logger(UpstoxService.name);
-  private readonly accessToken: string = process.env.ACCESS_TOKEN;
+  private accessToken: string = process.env.ACCESS_TOKEN;
   private protobufRoot: any = null;
   private version: string = 'v3';
 
+  constructor(
+    private readonly configService: ConfigService,
+  ) {}
+
   async onModuleInit() {
     await this.initProtobuf();
+    this.accessToken = this.configService.get('UPSTOX_ACCESS_TOKEN');
   }
 
   private async getMarketFeedUrl(): Promise<string> {
