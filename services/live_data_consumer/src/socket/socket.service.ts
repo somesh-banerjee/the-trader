@@ -10,10 +10,14 @@ import * as WebSocket from 'ws';
 export class SocketService implements OnModuleInit {
   private logger: Logger = new Logger(SocketService.name);
   private ws: WebSocket | null = null;
-  private instrumentKeysToSubscribe: string[] = [
+  private defautInstrumentKeysToSubscribe: string[] = [
     'NSE_INDEX|Nifty Bank',
     'NSE_INDEX|Nifty 50',
   ];
+  private readonly instrumentKeyColumn:
+    | 'upstox_key'
+    | 'zerodha_key'
+    | 'angelone_key' = 'upstox_key'; // Change this to the appropriate key based on your requirements
 
   constructor(
     private readonly tradingProviderService: UpstoxService,
@@ -22,20 +26,22 @@ export class SocketService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    this.instrumentKeysToSubscribe = await this.prisma.instrument
+    this.defautInstrumentKeysToSubscribe = await this.prisma.instrument
       .findMany({
         where: {
           trade_enabled: true,
         },
         select: {
-          upstox_key: true,
+          [this.instrumentKeyColumn]: true,
         },
       })
       .then((instruments) => {
-        return instruments.map((instrument) => instrument.upstox_key);
+        return instruments.map(
+          (instrument) => instrument[this.instrumentKeyColumn],
+        );
       });
     this.logger.log(
-      `Instrument keys to subscribe: ${this.instrumentKeysToSubscribe.join(
+      `Instrument keys to subscribe: ${this.defautInstrumentKeysToSubscribe.join(
         ', ',
       )}`,
     );
@@ -54,7 +60,7 @@ export class SocketService implements OnModuleInit {
         resolve(ws);
 
         // Default subscription
-        this.subscribe(this.instrumentKeysToSubscribe, Modes.FULL);
+        this.subscribe(this.defautInstrumentKeysToSubscribe, Modes.FULL);
       });
 
       ws.on('close', () => {
@@ -64,8 +70,11 @@ export class SocketService implements OnModuleInit {
       ws.on('message', (message: WebSocket.Data) => {
         try {
           const decodedData =
-            this.tradingProviderService.decodeMessage(message); 
-          this.marketDataService.processMarketData(decodedData);
+            this.tradingProviderService.decodeMessage(message);
+          this.marketDataService.processMarketData(
+            decodedData,
+            this.instrumentKeyColumn,
+          );
         } catch (error) {
           this.logger.error(`Error decoding message: ${error.message}`);
         }
@@ -155,7 +164,7 @@ export class SocketService implements OnModuleInit {
    * Set the instrument keys to subscribe to
    */
   setInstrumentKeysToSubscribe(instrumentKeys: string[]): void {
-    this.instrumentKeysToSubscribe = instrumentKeys;
+    this.defautInstrumentKeysToSubscribe = instrumentKeys;
     this.logger.log(
       `Instrument keys set to subscribe: ${instrumentKeys.join(', ')}`,
     );
