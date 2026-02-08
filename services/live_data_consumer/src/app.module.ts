@@ -5,6 +5,7 @@ import { SocketModule } from './components/socket/socket.module';
 import { InstrumentsModule } from './devpurpose/instruments/instruments.module';
 import configs from './config/configuration';
 import { validationSchema } from './config/validation';
+import { RawTickConsumerModule } from './components/raw-tick-consumer/raw-tick-consumer.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { validationSchema } from './config/validation';
     }),
     SocketModule,
     InstrumentsModule,
+    RawTickConsumerModule,
   ],
   controllers: [AppController],
 })

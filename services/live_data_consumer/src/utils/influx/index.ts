@@ -23,6 +23,7 @@ export class InfluxService implements OnModuleInit {
     measurement: string;
     tags: Record<string, string>;
     fields: Record<string, any>;
+    timestamp?: number;
   }): Promise<void> {
     const point = new Point(data.measurement);
 
@@ -32,6 +33,10 @@ export class InfluxService implements OnModuleInit {
 
     for (const [key, value] of Object.entries(data.fields)) {
       point.floatField(key, value);
+    }
+
+    if (data.timestamp) {
+      point.timestamp(data.timestamp);
     }
 
     try {

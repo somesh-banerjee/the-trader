@@ -26,7 +26,7 @@ export class NatsService implements OnModuleInit, OnModuleDestroy {
 
   async connect() {
     this.natsConnection = await connect({
-        servers: this.configService.get<string>('NATS_URL'),
+      servers: this.configService.get<string>('NATS_URL'),
     });
   }
 
@@ -36,10 +36,47 @@ export class NatsService implements OnModuleInit, OnModuleDestroy {
       return;
     }
     try {
-      this.natsConnection.publish(subject, this.sc.encode(JSON.stringify(data)));
+      this.natsConnection.publish(
+        subject,
+        this.sc.encode(JSON.stringify(data)),
+      );
       this.logger.log(`Published message to ${subject}`);
     } catch (error) {
-      this.logger.error(`Failed to publish message to ${subject}: ${error.message}`);
+      this.logger.error(
+        `Failed to publish message to ${subject}: ${error.message}`,
+      );
+    }
+  }
+
+  async subscribe(
+    subject: string,
+    callback: (message: string) => Promise<void>,
+  ) {
+    if (!this.natsConnection) {
+      this.logger.error('NATS connection is not established');
+      throw new Error('NATS connection is not established');
+    }
+    try {
+      const subscription = this.natsConnection.subscribe(subject);
+      this.logger.log(`Subscribed to ${subject}`);
+
+      (async () => {
+        for await (const message of subscription) {
+          try {
+            const decodedMessage = this.sc.decode(message.data);
+            await callback(decodedMessage);
+          } catch (error) {
+            this.logger.error(
+              `Error processing message from ${subject}: ${error.message}`,
+            );
+          }
+        }
+      })();
+
+      return subscription;
+    } catch (error) {
+      this.logger.error(`Failed to subscribe to ${subject}: ${error.message}`);
+      throw error;
     }
   }
 }
