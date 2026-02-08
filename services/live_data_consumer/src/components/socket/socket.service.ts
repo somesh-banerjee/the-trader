@@ -1,8 +1,8 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { MarketDataService } from 'src/market_data/market_data.service';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { Methods, Modes } from 'src/upstox/all.interface';
-import { UpstoxService } from 'src/upstox/uptox.service';
+import { MarketDataService } from 'src/components/market_data/market_data.service';
+import { InstrumentRegistryService } from 'src/utils/instrument-registry/instrument-registry.service';
+import { Methods, Modes } from 'src/utils/upstox/all.interface';
+import { UpstoxService } from 'src/utils/upstox/uptox.service';
 import { v4 as uuidv4 } from 'uuid';
 import * as WebSocket from 'ws';
 
@@ -20,26 +20,16 @@ export class SocketService implements OnModuleInit {
     | 'angelone_key' = 'upstox_key'; // Change this to the appropriate key based on your requirements
 
   constructor(
-    private readonly tradingProviderService: UpstoxService,
+    private readonly feedProviderService: UpstoxService,
     private readonly marketDataService: MarketDataService,
-    private readonly prisma: PrismaService,
+    private readonly instrumentRegistryService: InstrumentRegistryService,
   ) {}
 
   async onModuleInit() {
-    this.defautInstrumentKeysToSubscribe = await this.prisma.instrument
-      .findMany({
-        where: {
-          trade_enabled: true,
-        },
-        select: {
-          [this.instrumentKeyColumn]: true,
-        },
-      })
-      .then((instruments) => {
-        return instruments.map(
-          (instrument) => instrument[this.instrumentKeyColumn],
-        );
-      });
+    const tradableInstruments = this.instrumentRegistryService.getUpstoxKeys();
+
+    if (tradableInstruments.length !== 0)
+      this.defautInstrumentKeysToSubscribe = tradableInstruments;
     this.logger.log(
       `Instrument keys to subscribe: ${this.defautInstrumentKeysToSubscribe.join(
         ', ',
@@ -70,7 +60,7 @@ export class SocketService implements OnModuleInit {
       ws.on('message', (message: WebSocket.Data) => {
         try {
           const decodedData =
-            this.tradingProviderService.decodeMessage(message);
+            this.feedProviderService.decodeMessage(message);
           this.marketDataService.processMarketData(
             decodedData,
             this.instrumentKeyColumn,
@@ -91,7 +81,7 @@ export class SocketService implements OnModuleInit {
 
   async start(): Promise<void> {
     try {
-      const wsUrl = await this.tradingProviderService.getWssUrl();
+      const wsUrl = await this.feedProviderService.getWssUrl();
       this.ws = await this.connectWebSocket(wsUrl);
     } catch (error) {
       this.logger.error(

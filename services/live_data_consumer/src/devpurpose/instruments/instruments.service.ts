@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Exchange, Segment } from '@prisma/client';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from 'src/utils/prisma/prisma.service';
 import { CreateInstrumentDto, UpdateInstrumentDto } from './instruments.dto';
 
 @Injectable()
@@ -45,10 +45,7 @@ export class InstrumentsService {
     });
   }
 
-  async updateInstrument(
-    id: string,
-    data: UpdateInstrumentDto,
-  ) {
+  async updateInstrument(id: string, data: UpdateInstrumentDto) {
     return await this.prismaService.instrument.update({
       where: { id },
       data,
