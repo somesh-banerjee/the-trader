@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { instrument } from '@prisma/client';
+import { Instrument } from '@prisma/client';
 
 type Exchange = 'NSE' | 'BSE' | 'MCX' | 'NCD' | 'BCD';
 type Segment = 'EQ' | 'FO' | 'INDEX' | 'COM';
@@ -73,7 +73,7 @@ export class InstrumentRegistryService implements OnModuleInit {
    * Transform Prisma instrument to InstrumentInfo
    */
   private transformToInstrumentInfo = (
-    instrument: instrument,
+    instrument: Instrument,
   ): InstrumentInfo => ({
     id: instrument.id,
     exchange: instrument.exchange,

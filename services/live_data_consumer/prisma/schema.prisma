@@ -14,35 +14,169 @@ datasource db {
 }
 
 enum Exchange {
-  NSE   // National Stock Exchange
-  BSE   // Bombay Stock Exchange
-  MCX   // Multi Commodity Exchange
-  NCD   // NSE Currency Derivatives
-  BCD   // BSE Currency Derivatives
+  NSE // National Stock Exchange
+  BSE // Bombay Stock Exchange
+  MCX // Multi Commodity Exchange
+  NCD // NSE Currency Derivatives
+  BCD // BSE Currency Derivatives
 }
 
 enum Segment {
-  EQ      // Equity (Stocks)
-  FO      // Futures & Options
-  INDEX   // Index
-  COM     // Commodities
+  EQ // Equity (Stocks)
+  FO // Futures & Options
+  INDEX // Index
+  COM // Commodities
 }
 
-model instrument {
-  id             String       @id @default(uuid()) // Auto-incrementing Primary Key
-  exchange       Exchange  // Enum: NSE, BSE, MCX, etc.
-  segment        Segment   // Enum: EQ, FO, INDEX, COM, etc.
-  symbol         String    // Stock/Future/Option name
-  name            String
-  isin            String
-  short_name      String?
-  trade_enabled   Boolean   @default(false) // Whether this instrument is selected for trading
-  upstox_key      String?   // Upstox instrument key mapping
-  zerodha_key     String?   // Zerodha instrument key mapping
-  angelone_key    String?   // AngelOne instrument key mapping
-  created_at      DateTime  @default(now()) // Timestamp when added
-  updated_at      DateTime  @updatedAt // Auto-update timestamp
+model Instrument {
+  id            String     @id @default(uuid()) // Auto-incrementing Primary Key
+  exchange      Exchange // Enum: NSE, BSE, MCX, etc.
+  segment       Segment // Enum: EQ, FO, INDEX, COM, etc.
+  symbol        String // Stock/Future/Option name
+  name          String
+  isin          String
+  short_name    String?
+  trade_enabled Boolean    @default(false) // Whether this instrument is selected for trading
+  upstox_key    String? // Upstox instrument key mapping
+  zerodha_key   String? // Zerodha instrument key mapping
+  angelone_key  String? // AngelOne instrument key mapping
+  created_at    DateTime   @default(now()) // Timestamp when added
+  updated_at    DateTime   @updatedAt // Auto-update timestamp
+  Position      Position[]
+  Order         Order[]
 
   @@unique([exchange, segment, symbol]) // Composite Unique Constraint
 }
 
+// Position direction (net position per instrument)
+enum PositionSide {
+  LONG
+  SHORT
+}
+
+// Order direction (what we send to broker)
+enum OrderSide {
+  BUY
+  SELL
+}
+
+// Order execution type
+enum OrderType {
+  MARKET
+  LIMIT
+  STOP
+}
+
+// Order lifecycle status
+enum OrderStatus {
+  PENDING // Created by Decision Maker
+  PLACED // Sent to broker
+  PARTIALLY_FILLED
+  FILLED
+  CANCELLED
+  REJECTED
+}
+
+//////////////////////////////////////////////////////
+// PORTFOLIO
+//////////////////////////////////////////////////////
+
+// Represents a trading account.
+model Portfolio {
+  id   String @id @default(uuid())
+  name String @unique
+
+  // Total capital (updates only on realized PnL)
+  capital Float
+
+  // Available capital after margin usage
+  availableCapital Float
+
+  // Margin currently locked in open positions
+  marginUsed Float @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  positions Position[]
+  orders    Order[]
+}
+
+//////////////////////////////////////////////////////
+// POSITION (Net Position Per Instrument)
+//////////////////////////////////////////////////////
+
+// One row per instrument per portfolio.
+// Updated ONLY by Order Executor when fills occur.
+
+model Position {
+  id String @id @default(uuid())
+
+  portfolioId String
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+
+  instrumentId String
+  instrument   Instrument @relation(fields: [instrumentId], references: [id], onDelete: Restrict)
+
+  // Current net direction
+  side PositionSide
+
+  // Current net quantity
+  quantity Float
+
+  // Weighted average entry price
+  avgEntryPrice Float
+
+  // Realized PnL from closed quantities
+  realizedPnL Float @default(0)
+
+  // Mark-to-market PnL (optional, can be updated by price service)
+  unrealizedPnL Float @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Ensure only one net position per instrument per portfolio
+  @@unique([portfolioId, instrumentId])
+  @@index([instrumentId])
+}
+
+//////////////////////////////////////////////////////
+// ORDER
+//////////////////////////////////////////////////////
+
+// Single execution per order (no partial fills for MVP)
+
+model Order {
+  id String @id @default(uuid())
+
+  portfolioId String
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+
+  instrumentId String
+  instrument   Instrument @relation(fields: [instrumentId], references: [id], onDelete: Restrict)
+
+  side OrderSide
+  type OrderType
+
+  quantity Float
+
+  // Requested price (for LIMIT)
+  price Float?
+
+  // Execution details (set when FILLED)
+  executedPrice Float?
+  executedAt    DateTime?
+
+  fee Float @default(0)
+
+  status OrderStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([portfolioId])
+  @@index([instrumentId])
+  @@index([status])
+}
