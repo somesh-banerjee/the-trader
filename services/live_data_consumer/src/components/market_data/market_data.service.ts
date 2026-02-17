@@ -23,7 +23,6 @@ export class MarketDataService {
 
     const { feeds } = data;
 
-
     for (const [key, value] of Object.entries(feeds)) {
       const ltpc = value.fullFeed?.marketFF?.ltpc;
       if (ltpc) {
@@ -56,10 +55,7 @@ export class MarketDataService {
           ts: this.ensureNumber(ltpc.ltt),
         };
 
-        await this.natsService.publish(
-          CONSTANTS.RAW_TICK_NATS_SUBJECT,
-          tick,
-        );
+        await this.natsService.publish(CONSTANTS.RAW_TICK_NATS_SUBJECT, tick);
       }
     }
   }
@@ -71,18 +67,24 @@ export class MarketDataService {
     if (typeof value === 'number') {
       return value;
     }
+
+    // Handle protobuf / long.js 64-bit integer
     if (
       typeof value === 'object' &&
       value !== null &&
       'low' in value &&
       'high' in value
     ) {
-      // Handle protobuf 64-bit integer format
-      return (value.high << 32) + value.low;
+      // Convert to number safely
+      // low and high are signed 32-bit integers
+      return value.high * 0x100000000 + value.low;
     }
+
     if (typeof value === 'string') {
-      return parseFloat(value);
+      const parsed = parseFloat(value);
+      return isNaN(parsed) ? 0 : parsed;
     }
+
     return 0;
   }
 }

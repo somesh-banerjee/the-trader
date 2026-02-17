@@ -170,10 +170,10 @@ export class RawTickConsumerService implements OnModuleInit, OnModuleDestroy {
         windowStart: currentWindowStart,
       };
 
-      this.logger.debug(
-        `New candle window started for ${instrument.symbol}: ` +
-          `Open=${candle.open.toNumber()}, WindowStart=${new Date(currentWindowStart).toISOString()}`,
-      );
+      //   this.logger.debug(
+      //     `New candle window started for ${instrument.symbol}: ` +
+      //       `Open=${candle.open.toNumber()}, WindowStart=${new Date(currentWindowStart).toISOString()}`,
+      //   );
     } else {
       // Update existing candle
       const tickPrice = new Decimal(tick.ltp);
@@ -190,10 +190,10 @@ export class RawTickConsumerService implements OnModuleInit, OnModuleDestroy {
       candle.tradeCount += 1;
       candle.totalValue = candle.totalValue.add(tickPrice.mul(tickVolume));
 
-      this.logger.debug(
-        `Updated candle for ${instrument.symbol}: ` +
-          `H=${candle.high.toNumber()}, L=${candle.low.toNumber()}, C=${candle.close.toNumber()}, V=${candle.volume.toNumber()}`,
-      );
+      //   this.logger.debug(
+      //     `Updated candle for ${instrument.symbol}: ` +
+      //       `H=${candle.high.toNumber()}, L=${candle.low.toNumber()}, C=${candle.close.toNumber()}, V=${candle.volume.toNumber()}`,
+      //   );
     }
 
     // Store updated candle
@@ -237,7 +237,7 @@ export class RawTickConsumerService implements OnModuleInit, OnModuleDestroy {
           trade_count: candle.tradeCount,
           vwap: vwap.toNumber(),
         },
-        timestamp: candle.windowStart,
+        timestamp: new Date(candle.windowStart),
       });
 
       this.logger.log(

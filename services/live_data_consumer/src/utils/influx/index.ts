@@ -23,7 +23,7 @@ export class InfluxService implements OnModuleInit {
     measurement: string;
     tags: Record<string, string>;
     fields: Record<string, any>;
-    timestamp?: number;
+    timestamp?: Date;
   }): Promise<void> {
     const point = new Point(data.measurement);
 
@@ -36,7 +36,7 @@ export class InfluxService implements OnModuleInit {
     }
 
     if (data.timestamp) {
-      point.timestamp(new Date(data.timestamp));
+      point.timestamp(data.timestamp);
     }
 
     try {

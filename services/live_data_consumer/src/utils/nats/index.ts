@@ -40,7 +40,7 @@ export class NatsService implements OnModuleInit, OnModuleDestroy {
         subject,
         this.sc.encode(JSON.stringify(data)),
       );
-      this.logger.log(`Published message to ${subject}`);
+    //   this.logger.log(`Published message to ${subject}`);
     } catch (error) {
       this.logger.error(
         `Failed to publish message to ${subject}: ${error.message}`,
