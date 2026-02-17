@@ -23,12 +23,11 @@ export class MarketDataService {
 
     const { feeds } = data;
 
-    this.logger.log(`Received market data: ${JSON.stringify(data)}`);
 
     for (const [key, value] of Object.entries(feeds)) {
-      if (value.ltpc) {
+      const ltpc = value.fullFeed?.marketFF?.ltpc;
+      if (ltpc) {
         // Process LTPC data
-        const ltpc = value.ltpc;
 
         // Use instrument registry for fast lookup
         let instrument;
@@ -51,18 +50,40 @@ export class MarketDataService {
 
         const tick: TickEvent = {
           instrumentId: instrument.id,
-          ltp: ltpc.ltp,
-          ltq: ltpc.ltq,
-          cp: ltpc.cp,
-          ts: data.currentTs,
+          ltp: this.ensureNumber(ltpc.ltp),
+          ltq: this.ensureNumber(ltpc.ltq),
+          cp: this.ensureNumber(ltpc.cp),
+          ts: this.ensureNumber(ltpc.ltt),
         };
 
         await this.natsService.publish(
           CONSTANTS.RAW_TICK_NATS_SUBJECT,
-          JSON.stringify(tick),
+          tick,
         );
       }
     }
+  }
+
+  /**
+   * Ensure value is a number, handle 64-bit integer objects from protobuf
+   */
+  private ensureNumber(value: any): number {
+    if (typeof value === 'number') {
+      return value;
+    }
+    if (
+      typeof value === 'object' &&
+      value !== null &&
+      'low' in value &&
+      'high' in value
+    ) {
+      // Handle protobuf 64-bit integer format
+      return (value.high << 32) + value.low;
+    }
+    if (typeof value === 'string') {
+      return parseFloat(value);
+    }
+    return 0;
   }
 }
 

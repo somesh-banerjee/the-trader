@@ -36,11 +36,13 @@ export class InfluxService implements OnModuleInit {
     }
 
     if (data.timestamp) {
-      point.timestamp(data.timestamp);
+      point.timestamp(new Date(data.timestamp));
     }
 
     try {
-      this.client.getWriteApi(this.org, this.bucket).writePoint(point);
+      const writeApi = this.client.getWriteApi(this.org, this.bucket);
+      writeApi.writePoint(point);
+      await writeApi.flush();
       this.logger.log(`Data written to InfluxDB: ${JSON.stringify(data)}`);
     } catch (error) {
       this.logger.error(`Error writing data to InfluxDB: ${error.message}`);

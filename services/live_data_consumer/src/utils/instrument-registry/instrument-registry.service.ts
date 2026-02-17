@@ -1,24 +1,9 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { instrument } from '@prisma/client';
 
 type Exchange = 'NSE' | 'BSE' | 'MCX' | 'NCD' | 'BCD';
 type Segment = 'EQ' | 'FO' | 'INDEX' | 'COM';
-
-interface DatabaseInstrument {
-  id: string;
-  exchange: Exchange;
-  segment: Segment;
-  symbol: string;
-  name: string;
-  isin: string;
-  short_name: string | null;
-  trade_enabled: boolean;
-  upstox_key: string | null;
-  zerodha_key: string | null;
-  angelone_key: string | null;
-  created_at: Date;
-  updated_at: Date;
-}
 
 export interface InstrumentInfo {
   id: string;
@@ -88,7 +73,7 @@ export class InstrumentRegistryService implements OnModuleInit {
    * Transform Prisma instrument to InstrumentInfo
    */
   private transformToInstrumentInfo = (
-    instrument: DatabaseInstrument,
+    instrument: instrument,
   ): InstrumentInfo => ({
     id: instrument.id,
     exchange: instrument.exchange,
@@ -154,8 +139,22 @@ export class InstrumentRegistryService implements OnModuleInit {
   /**
    * Get instrument by ID
    */
-  getById(id: string): InstrumentInfo | undefined {
-    return this.instrumentIdMap.get(id);
+  async getById(id: string): Promise<InstrumentInfo | undefined> {
+    const res = this.instrumentIdMap.get(id);
+
+    if(!res){
+        const instrument = await this.prisma.instrument.findUnique({
+            where: {
+                id,
+            },
+        });
+        if(instrument){
+            const instrumentInfo = this.transformToInstrumentInfo( instrument);
+            this.populateMaps([instrumentInfo]);
+            return instrumentInfo;
+        }
+    }
+    return res;
   }
 
   /**

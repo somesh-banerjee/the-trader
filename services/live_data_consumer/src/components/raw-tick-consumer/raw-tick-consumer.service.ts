@@ -70,7 +70,7 @@ export class RawTickConsumerService implements OnModuleInit, OnModuleDestroy {
     this.logger.log('Flushing remaining candle data...');
 
     for (const [instrumentId, candle] of this.candleWindows.entries()) {
-      const instrument = this.instrumentRegistry.getById(instrumentId);
+      const instrument = await this.instrumentRegistry.getById(instrumentId);
       if (instrument) {
         await this.writeCandleToInflux(instrumentId, candle, instrument);
       }
@@ -92,7 +92,9 @@ export class RawTickConsumerService implements OnModuleInit, OnModuleDestroy {
         },
       );
 
-      this.logger.log('Successfully subscribed to ticks.raw');
+      this.logger.log(
+        `Successfully subscribed to ${CONSTANTS.RAW_TICK_NATS_SUBJECT}`,
+      );
     } catch (error) {
       this.logger.error(`Failed to subscribe to ticks.raw: ${error.message}`);
       throw error;
@@ -105,7 +107,10 @@ export class RawTickConsumerService implements OnModuleInit, OnModuleDestroy {
   private async handleTickMessage(message: string): Promise<void> {
     try {
       const tick: TickEvent = JSON.parse(message);
-      const instrument = this.instrumentRegistry.getById(tick.instrumentId);
+
+      const instrument = await this.instrumentRegistry.getById(
+        tick.instrumentId,
+      );
 
       if (!instrument) {
         this.logger.warn(`Instrument not found for ID: ${tick.instrumentId}`);
