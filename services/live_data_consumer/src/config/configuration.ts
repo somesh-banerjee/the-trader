@@ -12,4 +12,11 @@ export default () => ({
   NATS_SUBJECT: process.env.NATS_SUBJECT,
 
   UPSTOX_ACCESS_TOKEN: process.env.UPSTOX_ACCESS_TOKEN,
+
+  DECISION: {
+    MIN_CONFIDENCE: process.env.MIN_CONFIDENCE,
+    MIN_STRATEGY_AGREEMENT: process.env.MIN_STRATEGY_AGREEMENT,
+    ALLOW_LONG: process.env.ALLOW_LONG,
+    ALLOW_SHORT: process.env.ALLOW_SHORT,
+  },
 });

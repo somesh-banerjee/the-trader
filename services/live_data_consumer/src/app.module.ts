@@ -7,6 +7,7 @@ import configs from './config/configuration';
 import { validationSchema } from './config/validation';
 import { RawTickConsumerModule } from './components/raw-tick-consumer/raw-tick-consumer.module';
 import { SignalEngineModule } from './components/signal-engine/signal-engine.module';
+import { DecisionEngineModule } from './components/decision-engine/decision-engine.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { SignalEngineModule } from './components/signal-engine/signal-engine.mod
     InstrumentsModule,
     RawTickConsumerModule,
     SignalEngineModule,
+    DecisionEngineModule,
   ],
   controllers: [AppController],
 })
