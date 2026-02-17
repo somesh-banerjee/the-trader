@@ -1,0 +1,141 @@
+import { PrismaClient, Exchange, Segment } from '@prisma/client';
+import { v4 as uuidv4 } from 'uuid';
+
+const prisma = new PrismaClient();
+
+async function main() {
+  console.log('Start seeding...');
+
+  const sampleInstruments = [
+    {
+      id: uuidv4(),
+      exchange: Exchange.NSE,
+      segment: Segment.EQ,
+      symbol: 'RELIANCE',
+      name: 'Reliance Industries Limited',
+      isin: 'INE002A01018',
+      short_name: 'RELIANCE',
+      trade_enabled: true,
+      upstox_key: 'NSE_EQ|INE002A01018',
+      zerodha_key: 'NSE:RELIANCE-EQ',
+      angelone_key: 'NSE_EQ-INE002A01018',
+    },
+    {
+      id: uuidv4(),
+      exchange: Exchange.NSE,
+      segment: Segment.EQ,
+      symbol: 'TCS',
+      name: 'Tata Consultancy Services Limited',
+      isin: 'INE467B01029',
+      short_name: 'TCS',
+      trade_enabled: true,
+      upstox_key: 'NSE_EQ|INE467B01029',
+      zerodha_key: 'NSE:TCS-EQ',
+      angelone_key: 'NSE_EQ-INE467B01029',
+    },
+    {
+      id: uuidv4(),
+      exchange: Exchange.NSE,
+      segment: Segment.INDEX,
+      symbol: 'NIFTY 50',
+      name: 'NIFTY 50 Index',
+      isin: 'NIFTY50',
+      short_name: 'NIFTY 50',
+      trade_enabled: false,
+      upstox_key: 'NSE_IDX|NIFTY 50',
+      zerodha_key: 'NSE:NIFTY 50-INDEX',
+      angelone_key: 'NSE_IDX-NIFTY 50',
+    },
+    {
+      id: uuidv4(),
+      exchange: Exchange.NSE,
+      segment: Segment.EQ,
+      symbol: 'BHARTIARTL',
+      name: 'Bharti Airtel Ltd',
+      isin: 'INE397D01024',
+      short_name: 'Bharti Airtel',
+      trade_enabled: true,
+      upstox_key: 'NSE_EQ|INE397D01024',
+      zerodha_key: 'NSE:BHARTIARTL',
+      angelone_key: 'NSE:BHARTIARTL',
+    },
+    {
+      id: uuidv4(),
+      exchange: Exchange.NSE,
+      segment: Segment.EQ,
+      symbol: 'LT',
+      name: 'Larsen & Toubro Ltd',
+      isin: 'INE018A01030',
+      short_name: 'L&T',
+      trade_enabled: true,
+      upstox_key: 'NSE_EQ|INE018A01030',
+      zerodha_key: 'NSE:LT',
+      angelone_key: 'NSE:LT',
+    },
+    {
+      id: uuidv4(),
+      exchange: Exchange.NSE,
+      segment: Segment.EQ,
+      symbol: 'ITC',
+      name: 'ITC Ltd',
+      isin: 'INE154A01025',
+      short_name: 'ITC',
+      trade_enabled: true,
+      upstox_key: 'NSE_EQ|INE154A01025',
+      zerodha_key: 'NSE:ITC',
+      angelone_key: 'NSE:ITC',
+    },
+    {
+      id: uuidv4(),
+      exchange: Exchange.NSE,
+      segment: Segment.EQ,
+      symbol: 'SBIN',
+      name: 'State Bank of India',
+      isin: 'INE062A01020',
+      short_name: 'SBI',
+      trade_enabled: true,
+      upstox_key: 'NSE_EQ|INE062A01020',
+      zerodha_key: 'NSE:SBIN',
+      angelone_key: 'NSE:SBIN',
+    },
+    {
+      id: uuidv4(),
+      exchange: Exchange.NSE,
+      segment: Segment.EQ,
+      symbol: 'ICICI BANK',
+      name: 'ICICI Bank Ltd',
+      isin: 'INE090A01021',
+      short_name: 'ICICI Bank',
+      trade_enabled: true,
+      upstox_key: 'NSE_EQ|INE090A01021',
+      zerodha_key: 'NSE:ICICIBANK',
+      angelone_key: 'NSE:ICICIBANK',
+    },
+
+  ];
+
+  for (const instrument of sampleInstruments) {
+    await prisma.instrument.upsert({
+      where: {
+        exchange_segment_symbol: {
+          exchange: instrument.exchange,
+          segment: instrument.segment,
+          symbol: instrument.symbol,
+        },
+      },
+      update: instrument,
+      create: instrument,
+    });
+  }
+
+  console.log('Seeding finished.');
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
