@@ -30,7 +30,8 @@ export interface CandleData {
   close: Decimal;
   volume: Decimal;
   tradeCount: number;
-  vwap: Decimal;
+  totalValue: Decimal; // For VWAP calculation
+  windowStart: number;
 }
 
 @Injectable()
@@ -38,19 +39,7 @@ export class RawTickConsumerService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RawTickConsumerService.name);
 
   // Store candle data for each instrument
-  private candleWindows: Map<
-    string,
-    {
-      open: Decimal;
-      high: Decimal;
-      low: Decimal;
-      close: Decimal;
-      volume: Decimal;
-      tradeCount: number;
-      totalValue: Decimal; // For VWAP calculation
-      windowStart: number;
-    }
-  > = new Map();
+  private candleWindows: Map<string, CandleData> = new Map();
 
   constructor(
     private readonly natsService: NatsService,
@@ -140,10 +129,10 @@ export class RawTickConsumerService implements OnModuleInit, OnModuleDestroy {
     // Get current minute window start (floor to nearest minute)
     const currentWindowStart = Math.floor(tickTime / 60000) * 60000;
 
-    this.logger.debug(
-      `Processing tick for ${instrument.symbol}: ` +
-        `Price=${tick.ltp}, Volume=${tick.ltq}, Time=${new Date(tickTime).toISOString()}`,
-    );
+    // this.logger.debug(
+    //   `Processing tick for ${instrument.symbol}: ` +
+    //     `Price=${tick.ltp}, Volume=${tick.ltq}, Time=${new Date(tickTime).toISOString()}`,
+    // );
 
     // Get existing candle window or create new one
     let candle = this.candleWindows.get(instrumentId);
@@ -156,6 +145,11 @@ export class RawTickConsumerService implements OnModuleInit, OnModuleDestroy {
           `Window changed, writing candle for ${instrument.symbol}`,
         );
         await this.writeCandleToInflux(instrumentId, candle, instrument);
+
+        this.natsService.publish(CONSTANTS.CANDLE_CLOSED_1M_NATS_SUBJECT, {
+          instrumentId,
+          candle,
+        });
       }
 
       // Create new candle window

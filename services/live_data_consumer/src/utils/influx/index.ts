@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { InfluxDB, Point } from '@influxdata/influxdb-client';
+import { InfluxDB, Point, QueryApi } from '@influxdata/influxdb-client';
 
 @Injectable()
 export class InfluxService implements OnModuleInit {
@@ -10,6 +10,7 @@ export class InfluxService implements OnModuleInit {
   private readonly org: string = process.env.INFLUX_ORG;
   private client: InfluxDB;
   private logger = new Logger(InfluxService.name);
+  private queryApi: QueryApi;
 
   onModuleInit() {
     this.client = new InfluxDB({
@@ -17,6 +18,8 @@ export class InfluxService implements OnModuleInit {
       token: this.influxToken,
     });
     this.logger.log('InfluxDB client initialized');
+
+    this.queryApi = this.client.getQueryApi(this.org);
   }
 
   public async writePoint(data: {
@@ -48,6 +51,33 @@ export class InfluxService implements OnModuleInit {
       this.logger.error(`Error writing data to InfluxDB: ${error.message}`);
       throw error;
     }
+  }
+
+  public async get1mCandlePoints(data: {
+    instrumentId: string;
+    hoursAgo: number;
+  }) {
+    const fluxQuery = `
+        from(bucket: "${this.bucket}")
+        |> range(start: -${data.hoursAgo}h)
+        |> filter(fn: (r) => r._measurement == "candles_1m")
+        |> filter(fn: (r) => r.instrument == "${data.instrumentId}")
+        |> pivot(rowKey:["_time"], columnKey:["_field"], valueColumn:"_value")
+        |> sort(columns: ["_time"], desc: true)
+    `;
+
+    const results: any[] = [];
+
+    return new Promise((resolve, reject) => {
+        this.queryApi.queryRows(fluxQuery, {
+          next: (row, tableMeta) => {
+            const data = tableMeta.toObject(row);
+            results.push(data);
+          },
+          error: (err) => reject(err),
+          complete: () => resolve(results),
+        });
+    });
   }
 }
 
