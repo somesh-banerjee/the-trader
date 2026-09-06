@@ -44,6 +44,7 @@ model Instrument {
   updated_at    DateTime   @updatedAt // Auto-update timestamp
   Position      Position[]
   Order         Order[]
+  TradingIntentAudit TradingIntentAudit[]
 
   @@unique([exchange, segment, symbol]) // Composite Unique Constraint
 }
@@ -179,4 +180,32 @@ model Order {
   @@index([portfolioId])
   @@index([instrumentId])
   @@index([status])
+}
+
+model TradingIntentAudit {
+  id String @id @default(uuid())
+  
+  // Core decision data
+  instrumentId String
+  portfolioId String @default("default")
+  
+  // Timestamps
+  candleCloseTime DateTime
+  decisionTimestamp DateTime @default(now())
+  
+  // Audit data stored as JSONB for easy querying
+  rawSignals Json[] // Array of all contributing signals
+  aggregatedSignal Json // Final aggregated signal
+  finalIntent Json // Final intent/order data
+  
+  // Metadata
+  createdAt DateTime @default(now())
+  
+  // Relations
+  instrument Instrument @relation(fields: [instrumentId], references: [id])
+  
+  @@index([instrumentId, decisionTimestamp])
+  @@index([portfolioId])
+  @@index([candleCloseTime])
+  @@index([decisionTimestamp])
 }

@@ -9,7 +9,10 @@ import { NatsService } from 'src/utils/nats';
 import { StrategySignal } from '../signal-engine/strategies/base.strategy';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/utils/prisma/prisma.service';
-import { AggregatedSignal, DecisionLogicService } from './decision-logic.service';
+import {
+  AggregatedSignal,
+  DecisionLogicService,
+} from './decision-logic.service';
 
 @Injectable()
 export class DecisionEngineService implements OnModuleInit, OnModuleDestroy {
@@ -89,10 +92,13 @@ export class DecisionEngineService implements OnModuleInit, OnModuleDestroy {
 
     if (!aggregated) return;
 
-    await this.processAggregatedDecision(aggregated);
+    await this.processAggregatedDecision(aggregated, signals);
   }
 
-  private async processAggregatedDecision(aggregated: AggregatedSignal) {
+  private async processAggregatedDecision(
+    aggregated: AggregatedSignal,
+    rawSignals: StrategySignal[],
+  ) {
     const position = await this.prisma.position.findFirst({
       where: {
         instrumentId: aggregated.instrumentId,
@@ -106,6 +112,30 @@ export class DecisionEngineService implements OnModuleInit, OnModuleDestroy {
 
     if (!orderIntent) return;
 
+    await this.storeIntentAudit(aggregated, rawSignals, orderIntent);
+
     await this.natsService.publish(CONSTANTS.ORDER_INTENT_CREATED, orderIntent);
+  }
+
+  private async storeIntentAudit(
+    aggregated: AggregatedSignal,
+    rawSignals: StrategySignal[],
+    orderIntent: any,
+  ) {
+    try {
+    //   await this.prisma.$queryRaw`
+    //     INSERT INTO "TradingIntentAudit" (
+    //       "instrumentId", "portfolioId", "candleCloseTime", 
+    //       "rawSignals", "aggregatedSignal", "finalIntent", "createdAt"
+    //     ) VALUES (
+    //       ${aggregated.instrumentId}, ${'default'}, NOW(),
+    //       ${JSON.stringify(rawSignals)}, ${JSON.stringify(aggregated)}, 
+    //       ${JSON.stringify(orderIntent)}, NOW()
+    //     )
+    //   `;
+    await this.prisma.TradingIntentAudit.in;
+    } catch (error) {
+      this.logger.error('Failed to store intent audit', error);
+    }
   }
 }
